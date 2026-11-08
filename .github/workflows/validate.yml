@@ -1,0 +1,58 @@
+# Copy into the tap as .github/workflows/validate.yml after owner approval.
+# Validation only: no bottle uploads, releases, tags or automatic merges.
+name: Validate AQAF formula
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  formula:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, macos-26-intel, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_NO_AUTOREMOVE: '1'
+      HOMEBREW_NO_ANALYTICS: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Load reviewed candidate into a local tap
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew --version
+          brew tap focsd/aqaf
+          tap_root="$(brew --repository focsd/aqaf)"
+          mkdir -p "$tap_root/Formula"
+          cp Formula/aqaf.rb "$tap_root/Formula/aqaf.rb"
+          brew trust --formula focsd/aqaf/aqaf
+      - name: Style and strict audit
+        run: |
+          brew style focsd/aqaf/aqaf
+          brew audit --strict focsd/aqaf/aqaf
+      - name: Build, test and inspect linkage
+        run: |
+          brew install --build-from-source focsd/aqaf/aqaf
+          brew test focsd/aqaf/aqaf
+          brew linkage --test focsd/aqaf/aqaf
+      - name: Verify isolated runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset PYTHONPATH
+          prefix="$(brew --prefix aqaf)"
+          cd "$RUNNER_TEMP"
+          "$prefix/bin/aqaf" --version
+          "$prefix/libexec/bin/python" -I -c 'import aqaf, sys; assert sys.prefix != sys.base_prefix; assert aqaf.__file__.startswith(sys.prefix)'
+      - name: Uninstall and reinstall without autoremoving other packages
+        run: |
+          brew uninstall focsd/aqaf/aqaf
+          brew install --build-from-source focsd/aqaf/aqaf
+          brew test focsd/aqaf/aqaf
