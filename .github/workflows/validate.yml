@@ -1,0 +1,58 @@
+# Copy into the tap as .github/workflows/validate.yml after owner approval.
+# Validation only: no bottle uploads, releases, tags or automatic merges.
+name: Validate AQAF formula
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  formula:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, macos-26-intel, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_NO_AUTOREMOVE: '1'
+      HOMEBREW_NO_ANALYTICS: '1'
+    steps:
+      - name: Set up Homebrew and check out the tap
+        uses: Homebrew/actions/setup-homebrew@63a2d4d8d4193eab3e62b1b782ff3ab8408f5b29
+        with:
+          stable: true
+      - name: Verify and trust the candidate formula
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew --version
+          test -f "$(brew --repository focsd/aqaf)/Formula/aqaf.rb"
+          brew trust --formula focsd/aqaf/aqaf
+      - name: Style and strict audit
+        run: |
+          brew style focsd/aqaf/aqaf
+          brew audit --strict focsd/aqaf/aqaf
+      - name: Build, test and inspect linkage
+        run: |
+          brew install --build-from-source focsd/aqaf/aqaf
+          brew test focsd/aqaf/aqaf
+          brew linkage --test focsd/aqaf/aqaf
+      - name: Verify isolated runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset PYTHONPATH
+          prefix="$(brew --prefix aqaf)"
+          cd "$RUNNER_TEMP"
+          "$prefix/bin/aqaf" --version
+          "$prefix/libexec/bin/python" -I -c 'import aqaf, sys; assert sys.prefix != sys.base_prefix; assert aqaf.__file__.startswith(sys.prefix)'
+      - name: Uninstall and reinstall without autoremoving other packages
+        run: |
+          brew uninstall focsd/aqaf/aqaf
+          brew install --build-from-source focsd/aqaf/aqaf
+          brew test focsd/aqaf/aqaf
