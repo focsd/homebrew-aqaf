@@ -22,16 +22,16 @@ jobs:
       HOMEBREW_NO_AUTOREMOVE: '1'
       HOMEBREW_NO_ANALYTICS: '1'
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Load reviewed candidate into a local tap
+      - name: Set up Homebrew and check out the tap
+        uses: Homebrew/actions/setup-homebrew@63a2d4d8d4193eab3e62b1b782ff3ab8408f5b29
+        with:
+          stable: true
+      - name: Verify and trust the candidate formula
         shell: bash
         run: |
           set -euo pipefail
           brew --version
-          brew tap focsd/aqaf
-          tap_root="$(brew --repository focsd/aqaf)"
-          mkdir -p "$tap_root/Formula"
-          cp Formula/aqaf.rb "$tap_root/Formula/aqaf.rb"
+          test -f "$(brew --repository focsd/aqaf)/Formula/aqaf.rb"
           brew trust --formula focsd/aqaf/aqaf
       - name: Style and strict audit
         run: |
