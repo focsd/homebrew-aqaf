@@ -5,8 +5,8 @@ class Aqaf < Formula
 
   desc "Local architecture assessment with provisional heuristic findings"
   homepage "https://aqaf.focsd.com"
-  url "https://files.pythonhosted.org/packages/6a/70/36d776e22c886b1d52de0354cc7ce16d42bcfa4a42e705b5d9d9d0937867/aqaf-1.1.1.tar.gz"
-  sha256 "9336085a7d18709635e42fd11a605ad07d7e45cfade7d15344eb3d4b1716de87"
+  url "https://files.pythonhosted.org/packages/df/bd/0272acf92fbb4a8feee96463e3d0a40ddf37f7c99fe620ec6df67bca283a/aqaf-1.1.2.tar.gz"
+  sha256 "a665a39f8c987dd8939638f7a736e2558bb769d3270e473b93f68534facd24a3"
   license "MIT"
 
   depends_on "python@3.15"
