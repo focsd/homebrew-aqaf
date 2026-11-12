@@ -5,8 +5,8 @@ class Aqaf < Formula
 
   desc "Local architecture assessment with provisional heuristic findings"
   homepage "https://aqaf.focsd.com"
-  url "https://files.pythonhosted.org/packages/b9/6d/33cb711a7b996c3ad9c2297ce47e90079e67ef97c5088751334977a5a039/aqaf-1.1.0.tar.gz"
-  sha256 "6dde3e4ef8edf12f8ee5abcb6f536a2417d0283ccf374c1e8024a1342187b07c"
+  url "https://files.pythonhosted.org/packages/6a/70/36d776e22c886b1d52de0354cc7ce16d42bcfa4a42e705b5d9d9d0937867/aqaf-1.1.1.tar.gz"
+  sha256 "9336085a7d18709635e42fd11a605ad07d7e45cfade7d15344eb3d4b1716de87"
   license "MIT"
 
   depends_on "python@3.15"
@@ -30,12 +30,13 @@ class Aqaf < Formula
     (fixture/"app.py").write "# Synthetic scan input; never executed.\n"
     before = fixture.children.to_h { |path| [path.basename.to_s, path.read] }
 
-    command = "#{bin}/aqaf '#{fixture}' --profile api_backend --pack web --format json --output -"
+    command = "#{bin}/aqaf '#{fixture}' --profile api_backend --pack web --review-knowledge --format json --output -"
     report = JSON.parse(shell_output(command))
     assert_equal version.to_s, report.fetch("aqaf_version")
     assert_equal "api_backend", report.fetch("product_type")
     assert_equal "web", report.fetch("selected_pack")
     assert_kind_of Array, report.fetch("findings")
+    assert_equal "none", report.fetch("review_knowledge").fetch("score_effect")
     assert report.key?("score")
     assert_equal before, fixture.children.to_h { |path| [path.basename.to_s, path.read] }
 
@@ -46,6 +47,11 @@ class Aqaf < Formula
       assert json.loads(data.joinpath("catalog.json").read_text())
       assert data.joinpath("profiles/api_backend.json").is_file()
       assert data.joinpath("packs/web.json").is_file()
+      assert json.loads(data.joinpath("documentation_checks.json").read_text())
+      knowledge = json.loads(data.joinpath("book_review_knowledge.json").read_text())
+      assert len(knowledge["books"]) == 31
+      assert len(knowledge["principles"]) == 14
+      assert sum(len(b["reading_references"]) for b in knowledge["books"]) == 56
     PYTHON
   end
 end
