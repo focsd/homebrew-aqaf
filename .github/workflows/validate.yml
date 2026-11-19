@@ -16,6 +16,10 @@ jobs:
       matrix:
         os: [macos-26, macos-26-intel, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
+    # Homebrew no longer builds bottles for Intel macOS (Tier 3), so python@3.15 compiles from
+    # source there and setup/postinstall steps have failed on the runner independently of this
+    # formula (2026-11-19). Intel is still run and logged, but does not block merges.
+    continue-on-error: ${{ matrix.os == 'macos-26-intel' }}
     env:
       HOMEBREW_NO_AUTO_UPDATE: '1'
       HOMEBREW_NO_INSTALL_CLEANUP: '1'
